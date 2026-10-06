@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Computer-Sortierspiel</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f4f7fb;--fg:#1c2733;--card:#fff;--bd:#cfd8e3;--in:#e3f0ff;--inb:#2f7de1;--out:#fff0e0;--outb:#e8871e;--ok:#d6f5df;--okb:#1f9d4d;--no:#fde0e0;--nob:#d33;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141a22;--fg:#e8eef5;--card:#222c38;--bd:#3a4757;--in:#1b3350;--out:#4a3318;--ok:#17402a;--no:#4a2020}}
+:root[data-theme="dark"]{--bg:#141a22;--fg:#e8eef5;--card:#222c38;--bd:#3a4757;--in:#1b3350;--out:#4a3318;--ok:#17402a;--no:#4a2020}
+html,body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;touch-action:manipulation;}
+main{max-width:860px;margin:0 auto;padding:12px}
+h1{font-size:1.4rem;margin:4px 0}
+.top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.score{font-weight:700;background:var(--card);border:2px solid var(--bd);border-radius:12px;padding:6px 12px}
+p.s{margin:4px 0 10px;opacity:.8}
+#pool{display:flex;flex-wrap:wrap;gap:8px;min-height:60px;padding:10px;background:var(--card);border:2px dashed var(--bd);border-radius:12px}
+.c{background:var(--card);border:2px solid var(--bd);border-radius:10px;padding:12px 14px;cursor:pointer;user-select:none;font-size:1rem;touch-action:none;}
+#pool .c:hover{transform:translateY(-2px)}
+.c.sel{outline:3px solid #7a5cff;background:var(--in);}
+.c.shake{animation:sh .4s;border-color:var(--nob);background:var(--no)}
+@keyframes sh{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.zones{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.z{min-height:150px;border-radius:14px;padding:10px;border:3px solid;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.z h2{margin:0 0 6px;font-size:1.05rem}
+.z.in{background:var(--in);border-color:var(--inb)}.z.out{background:var(--out);border-color:var(--outb)}
+.z.over{box-shadow:0 0 0 4px #7a5cff55}
+.z .c{display:inline-block;margin:3px;cursor:default;background:var(--ok);border-color:var(--okb);animation:pop .5s;padding:6px 10px;}
+@keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.15);box-shadow:0 0 14px var(--okb)}100%{transform:scale(1)}}
+#msg{padding:12px;border-radius:12px;border:2px solid var(--bd);background:var(--card);min-height:52px}
+#msg.ok{background:var(--ok);border-color:var(--okb)}#msg.no{background:var(--no);border-color:var(--nob)}
+button{font:inherit;font-weight:700;padding:12px 20px;border:0;border-radius:10px;background:#2f7de1;color:#fff;cursor:pointer;margin-top:10px}
+#end{display:none;text-align:center;margin-top:12px;font-size:1.2rem}
+@media(max-width:768px){.zones{grid-template-columns:1fr;}.z{min-height:120px;}}
+@media(max-width:520px){.zones{gap:6px}.z{padding:6px}}
+</style></head><body><main>
+<div class="top"><h1>💻 Computer-Sortierspiel</h1>
+<div class="score">⭐ Punkte: <span id="pts">0</span> / 20 &nbsp; ❌ Fehler: <span id="err">0</span></div></div>
+<p class="s">Tippe eine Karte an und wähle dann die richtige Gruppe aus.</p>
+<div id="pool"></div>
+<div class="zones">
+<div class="z in" data-z="in"><h2>⌨️ Eingabegeräte</h2><div class="l"></div></div>
+<div class="z out" data-z="out"><h2>🖥️ Ausgabegeräte</h2><div class="l"></div></div>
+</div>
+<div id="msg">Los geht's! Welche Karte sortierst du zuerst?</div>
+<div id="end"><div id="endt"></div><button onclick="start()">🔄 Nochmal spielen</button></div>
+<button id="again" onclick="start()">🔄 Nochmal spielen</button>
+</main>
+<script>
+const D=[
+["⌨️","Tastatur","in","Mit ihr tippst du Buchstaben in den Computer.","Die QWERTZ-Anordnung stammt von Schreibmaschinen."],
+["🖱️","Maus","in","Du steuerst damit den Zeiger auf dem Bildschirm.","Die erste Maus war aus Holz und wurde 1964 gebaut."],
+["🎤","Mikrofon","in","Es nimmt deine Stimme auf und schickt sie zum Computer.","Sprachassistenten hören dir über ein Mikrofon zu."],
+["📷","Webcam","in","Sie liefert Bilder von dir in den Computer.","Die erste Webcam filmte eine Kaffeemaschine in Cambridge!"],
+["🖨️","Scanner","in","Er liest Papier ein und macht daraus eine Datei.","Ein Scanner wandelt Papier in digitale Bilder um."],
+["🕹️","Joystick","in","Mit ihm steuerst du Spielfiguren oder Flugzeuge.","Joysticks gibt es schon in echten Flugzeugen seit über 100 Jahren."],
+["✏️","Grafiktablett","in","Du zeichnest mit einem Stift und der Computer nimmt es auf.","Viele Comiczeichner nutzen Grafiktabletts."],
+["📊","Barcode-Scanner","in","An der Supermarktkasse liest er Strichcodes ein.","Der erste gescannede Artikel war 1974 ein Kaugummipaket."],
+["🎮","Gamepad","in","Mit seinen Tasten schickst du Befehle ans Spiel.","Das Steuerkreuz wurde in Japan erfunden."],
+["👆","Fingerabdruckscanner","in","Er liest deinen Finger ein, um dich zu erkennen.","Jeder Fingerabdruck ist einzigartig – auch bei Zwillingen!"],
+["🖥️","Monitor","out","Er zeigt dir Bilder und Texte an.","Ein Bildschirm besteht aus Millionen winziger Punkte (Pixel)."],
+["🖨️","Drucker","out","Er brings Texte und Bilder auf Papier.","Tintenstrahldrucker spritzen winzige Tröpfchen aufs Papier."],
+["🔊","Lautsprecher","out","Er macht Töne und Musik hörbar.","Lautsprecher bringen Luft zum Schwingen – das hörst du als Ton."],
+["🎧","Kopfhörer","out","Sie geben Ton nur für dich aus.","Kopfhörer sind winzige Lautsprecher direkt am Ohr."],
+["📽️","Beamer","out","Er wirft das Bild groß an die Wand.","Beamer werden oft im Klassenzimmer und im Kino benutzt."],
+["📐","Plotter","out","Er zeichnet große Pläne mit Stiften auf Papier.","Architekten drucken Baupläne mit Plottern."],
+["🧱","3D-Drucker","out","Er baut Gegenstände Schicht für Schicht aus Kunststoff.","Mit 3D-Druckern kann man sogar Häuser bauen!"],
+["🔈","Soundbar","out","Sie gibt den Ton vom Fernseher oder PC aus.","Eine Soundbar steckt mehrere Lautsprecher in ein Gehäuse."],
+["⠿","Braillezeile","out","Sie zeigt blinden Menschen Text als fühlbare Punkte.","Die Punkteschrift wurde von Louis Braille erfunden."],
+["📺","Smart-TV-Bildschirm","out","Er zeigt Filme und Bilder an.","Der erste Fernseher hatte nur ein winziges Bild."]
+].map((a,i)=>({id:i,e:a[0],n:a[1],t:a[2],h:a[3],f:a[4]}));
+let pts,err,sel,pool=document.getElementById("pool"),msg=document.getElementById("msg");
+const $=id=>document.getElementById(id);
+function say(t,c){msg.className=c||"";msg.innerHTML=t}
+function start(){pts=0;err=0;sel=null;$("pts").textContent=0;$("err").textContent=0;
+document.querySelectorAll(".l").forEach(l=>l.innerHTML="");pool.innerHTML="";
+$("end").style.display="none";$("again").style.display="";
+[...D].sort(()=>Math.random()-.5).forEach(d=>{const c=document.createElement("div");c.className="c";c.draggable=false;c.dataset.id=d.id;c.textContent=d.e+" "+d.n;
+c.onclick=()=>{document.querySelectorAll(".sel").forEach(x=>x.classList.remove("sel"));sel=c;c.classList.add("sel")};
+pool.appendChild(c)});
+say("Los geht's! Welche Karte sortierst du zuerst?")}
+function attempt(c,z){if(!c)return say("Wähle zuerst eine Karte aus.");
+const d=D[c.dataset.id];
+if(d.t===z.dataset.z){pts++;$("pts").textContent=pts;c.className="c";c.onclick=null;
+z.querySelector(".l").appendChild(c);sel=null;
+say("✅ <b>Richtig!</b> "+d.n+" gehört zu "+(d.t=="in"?"den Eingabegeräten":"den Ausgabegeräten")+".<br>💡 <i>Wusstest du? "+d.f+"</i>","ok");
+if(pts==20){$("endt").innerHTML="🎉 <b>Geschafft!</b> Du hast "+pts+" Punkte und "+err+" Fehler.";$("end").style.display="block";$("again").style.display="none"}}
+else{err++;$("err").textContent=err;c.classList.add("shake");setTimeout(()=>c.classList.remove("shake"),450);
+say("❌ <b>Leider falsch.</b> 🤔 Tipp: "+d.h+" Eingabegeräte schicken Infos <i>in</i> den Computer, Ausgabegeräte geben sie <i>aus</i>.","no")}}
+document.querySelectorAll(".z").forEach(z=>{
+z.onclick=()=>{if(sel&&sel.parentNode===pool)attempt(sel,z)}});
+start();
+</script></body></html>
